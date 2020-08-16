@@ -1,7 +1,7 @@
 .DS_Store
 .thumbs.db
 node_modules
-/src/database/*
+/src/database/gplacas.json
 
 # Quasar core related directories
 .quasar
