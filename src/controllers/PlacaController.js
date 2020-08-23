@@ -1,4 +1,4 @@
-import { LoadingBar, Dialog, Notify, exportFile } from "quasar";
+import { LoadingBar, Dialog, Notify, exportFile, QMarkupTable } from "quasar";
 import { Date } from "core-js";
 
 const lowdb = require("lowdb");
@@ -27,6 +27,7 @@ export function procurarPlaca(numeroPlaca) {
       if (veiculoExistente[0]) {
         LoadingBar.stop();
         Dialog.create({
+          dark: true,
           title: "Veículo já registrado!",
           message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado no sistema.`
         });
@@ -37,7 +38,7 @@ export function procurarPlaca(numeroPlaca) {
           persistent: true,
           html: true,
           fullWidth: true,
-          style: "width: max-content",
+          dark: true,
           title: `Veículo encontrado!`,
           message: `
           Um veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP. Deseja registrá-lo no sistema?
@@ -85,8 +86,11 @@ export function procurarPlaca(numeroPlaca) {
         LoadingBar.stop();
         Dialog.create({
           html: true,
+          dark: true,
           title: `Veículo não encontrado!`,
-          message: `<p>Nenhum veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP.</p>`
+          message: `<p>Nenhum veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP.<br/><br/>
+                    As vezes isto pode ser apenas uma instabilidade no serviço da SINESP. Se você tem certeza que está procurando por uma placa existente, tente novamente.
+                    </p>`
         });
       } else {
         console.log(error);
@@ -94,34 +98,6 @@ export function procurarPlaca(numeroPlaca) {
         procurarPlaca(numeroPlaca);
       }
     });
-}
-
-export function salvarPlaca(placa) {
-  LoadingBar.start();
-
-  let date = new Date();
-  let dia = date.getDate();
-  let mes = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
-  let ano = date.getFullYear();
-  let dataCadastro = `${dia}/${mes}/${ano}`;
-
-  let placas = buscarPlacas();
-
-  placa["id"] = placas.length + 1;
-  placa["data_cadastro"] = dataCadastro;
-
-  db.get("Placa")
-    .push(placa)
-    .write();
-
-  LoadingBar.stop();
-  Notify.create({
-    html: true,
-    message: `O veículo <ins>${placa.modelo}</ins> foi registrado no sistema. Clique em "Recarregar" para atualizar a tabela`,
-    color: "positive",
-    position: "center",
-    icon: "save"
-  });
 }
 
 export function buscarPlacas(numeroPlaca = null) {
@@ -141,10 +117,128 @@ export function buscarPlacas(numeroPlaca = null) {
   }
 }
 
+export function salvarPlaca(placa) {
+  LoadingBar.start();
+
+  let date = new Date();
+  let dia = date.getDate();
+  let mes = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
+  let ano = date.getFullYear();
+  let dataCadastro = `${dia}/${mes}/${ano}`;
+
+  let placas = buscarPlacas();
+  let novoId = null;
+  if (placas.length === 0) {
+    novoId = 1;
+  } else {
+    novoId =
+      Math.max.apply(
+        Math,
+        placas.map(function(placa) {
+          return placa.id;
+        })
+      ) + 1;
+  }
+
+  placa["id"] = novoId;
+  placa["data_cadastro"] = dataCadastro;
+
+  db.get("Placa")
+    .push(placa)
+    .write();
+
+  LoadingBar.stop();
+  Notify.create({
+    html: true,
+    message: `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`,
+    color: "positive",
+    position: "center",
+    icon: "save"
+  });
+}
+
+export function editarCampoPlaca(valor, coluna, veiculo) {
+  db.get("Placa")
+    .find({ placa: veiculo.placa })
+    .assign({ [coluna]: valor })
+    .write();
+
+  Notify.create({
+    html: true,
+    message: `Campo alterado com sucesso.`,
+    color: "primary",
+    position: "bottom",
+    icon: "save"
+  });
+}
+
+export function excluirPlacas(placas) {
+  let tbody = placas
+    .map(veiculo => {
+      return `<tr>
+        <td>${veiculo.placa}</td>
+        <td>${veiculo.modelo}</td>
+        <td>${veiculo.cor}</td>
+        <td>${veiculo.ano}</td>
+        <td>${veiculo.uf}</td>
+        <td>${veiculo.municipio}</td>
+        <td>${veiculo.situacao}</td>
+      </tr>`;
+    })
+    .join("");
+
+  Dialog.create({
+    cancel: true,
+    persistent: true,
+    html: true,
+    fullWidth: true,
+    dark: true,
+    title: "Exclusão de veículos",
+    message: `
+      Deseja realmente excluir o(s) seguinte(s) veículo(s)?
+      <hr/>
+      <table style='width: 100%; text-align: left'>
+        <theader>
+          <tr>
+            <th>Placa</th>
+            <th>Modelo</th>
+            <th>Cor</th>
+            <th>Ano</th>
+            <th>Estado</th>
+            <th>Município</th>
+            <th>Situação</th>
+          </tr>
+        </theader>
+        <tbody>
+          ${tbody}
+        </tbody>
+      </table>`
+  })
+    .onOk(() => {
+      placas.forEach(veiculo => {
+        db.get("Placa")
+          .remove({ placa: veiculo.placa })
+          .write();
+      });
+
+      Notify.create({
+        message: `Veículos excluidos do sistema com sucesso. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`,
+        color: "negative",
+        position: "center",
+        icon: "delete"
+      });
+
+      return true;
+    })
+    .onCancel(() => {
+      return false;
+    });
+}
+
 export function validarPlaca(numeroPlaca) {
   if (numeroPlaca.length === 7) {
     if (
-      /^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 2)) &&
+      /^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 3)) &&
       /^-?\d+$/.test(numeroPlaca.slice(3, 7))
     ) {
       return true;
