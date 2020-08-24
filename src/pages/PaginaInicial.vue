@@ -72,6 +72,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite o modelo do veículo:"
               >
                 <q-input
                   v-model="props.row.modelo"
@@ -98,6 +99,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite a cor do veículo:"
               >
                 <q-input
                   v-model="props.row.cor"
@@ -124,6 +126,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite o ano do veículo:"
               >
                 <q-input
                   v-model="props.row.ano"
@@ -150,6 +153,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite o estado do veículo:"
               >
                 <q-input
                   v-model="props.row.uf"
@@ -176,6 +180,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite o município do veículo:"
               >
                 <q-input
                   v-model="props.row.municipio"
@@ -202,6 +207,7 @@
                 label-set="Salvar"
                 label-cancel="Desfazer"
                 color="amber"
+                title="Edite a situação do veículo:"
               >
                 <q-input
                   v-model="props.row.situacao"
@@ -235,8 +241,25 @@
             </q-tooltip>
           </q-btn>
           <q-btn
+            @click="adicionarPlacaManual"
+            color="indigo-7"
+            icon="add"
+            round
+            class="q-ml-xs"
+          >
+            <q-tooltip
+              anchor="top middle"
+              self="bottom middle"
+              :offset="[10, 10]"
+              content-style="font-size: 14px"
+              content-class="bg-indigo-7"
+            >
+              Adicionar Novo Veículo Manualmente
+            </q-tooltip>
+          </q-btn>
+          <q-btn
             @click="buscarPlacas"
-            color="primary"
+            color="amber-10"
             icon="refresh"
             round
             class="q-ml-xs"
@@ -246,7 +269,7 @@
               self="bottom middle"
               :offset="[10, 10]"
               content-style="font-size: 14px"
-              content-class="bg-primary"
+              content-class="bg-amber-10"
             >
               Recarregar Tabela
             </q-tooltip>
@@ -412,11 +435,42 @@ export default {
         this.$q.dialog({
           dark: true,
           html: true,
+          ok: {
+            label: "Fechar",
+            color: "indigo-10"
+          },
           title: `Placa ${this.numeroPlaca} invalida!`,
           message:
             "<p>O formato da placa precisa ter 7 digitos e estar dentro do padrão ABC1234 ou ABC1D23.</p>"
         });
       }
+    },
+    adicionarPlacaManual: function() {
+      this.$q.dialog({
+        html: true,
+        dark: true,
+        ok: {
+          label: "Salvar",
+          color: "green-9",
+          push: true
+        },
+        cancel: {
+          label: "Desfazer",
+          color: "negative",
+          push: true
+        },
+        title: "Adicionar Novo Veículo Manualmente",
+        message: "Insira a placa do veículo que deseja salvar:",
+        prompt: {
+          type: "text",
+          model: '',
+          isValid: val => controller.validarPlaca(val),
+          maxlength: 7,
+          outlined: true,
+        }
+      }).onOk((numeroPlaca) => {
+        controller.criarPlacaManual(numeroPlaca.toUpperCase())
+      });
     },
     buscarPlacas: function() {
       this.dadosTabela = controller.buscarPlacas();

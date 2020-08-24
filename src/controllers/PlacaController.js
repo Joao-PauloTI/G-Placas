@@ -1,4 +1,4 @@
-import { LoadingBar, Dialog, Notify, exportFile, QMarkupTable } from "quasar";
+import { LoadingBar, Dialog, Notify, exportFile } from "quasar";
 import { Date } from "core-js";
 
 const lowdb = require("lowdb");
@@ -28,6 +28,11 @@ export function procurarPlaca(numeroPlaca) {
         LoadingBar.stop();
         Dialog.create({
           dark: true,
+          ok: {
+            label: "Fechar",
+            color: "indigo-10",
+            push: true
+          },
           title: "Veículo já registrado!",
           message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado no sistema.`
         });
@@ -38,6 +43,16 @@ export function procurarPlaca(numeroPlaca) {
           persistent: true,
           html: true,
           fullWidth: true,
+          ok: {
+            label: "Sim",
+            color: "green-9",
+            push: true
+          },
+          cancel: {
+            label: "Não",
+            color: "negative",
+            push: true
+          },
           dark: true,
           title: `Veículo encontrado!`,
           message: `
@@ -87,6 +102,11 @@ export function procurarPlaca(numeroPlaca) {
         Dialog.create({
           html: true,
           dark: true,
+          ok: {
+            label: "Fechar",
+            color: "indigo-10",
+            push: true
+          },
           title: `Veículo não encontrado!`,
           message: `<p>Nenhum veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP.<br/><br/>
                     As vezes isto pode ser apenas uma instabilidade no serviço da SINESP. Se você tem certeza que está procurando por uma placa existente, tente novamente.
@@ -150,11 +170,38 @@ export function salvarPlaca(placa) {
   LoadingBar.stop();
   Notify.create({
     html: true,
-    message: `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`,
-    color: "positive",
+    message:
+      placa.modelo !== "N/A"
+        ? `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`
+        : `A placa <strong>${placa.placa}</strong> foi registrada no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela e complemente as informações do veículo.`,
+    color: "green-9",
     position: "center",
     icon: "save"
   });
+}
+
+export function criarPlacaManual(numeroPlaca) {
+  let novaPlaca = {
+    ano: "N/A",
+    anoModelo: "",
+    chassi: "",
+    codigoRetorno: "",
+    codigoSituacao: "",
+    cor: "N/A",
+    data: "",
+    dataAtualizacaoAlarme: "",
+    dataAtualizacaoCaracteristicasVeiculo: "",
+    dataAtualizacaoRouboFurto: "",
+    marca: "",
+    mensagemRetorno: "",
+    modelo: "N/A",
+    municipio: "N/A",
+    placa: `${numeroPlaca}`,
+    situacao: "N/A",
+    uf: "N/A"
+  };
+
+  salvarPlaca(novaPlaca);
 }
 
 export function editarCampoPlaca(valor, coluna, veiculo) {
@@ -165,10 +212,10 @@ export function editarCampoPlaca(valor, coluna, veiculo) {
 
   Notify.create({
     html: true,
-    message: `Campo alterado com sucesso.`,
-    color: "primary",
+    message: `Campo editado com sucesso.`,
+    color: "indigo-10",
     position: "bottom",
-    icon: "save"
+    icon: "edit"
   });
 }
 
@@ -193,6 +240,16 @@ export function excluirPlacas(placas) {
     html: true,
     fullWidth: true,
     dark: true,
+    ok: {
+      label: "Sim",
+      color: "green-9",
+      push: true
+    },
+    cancel: {
+      label: "Não",
+      color: "negative",
+      push: true
+    },
     title: "Exclusão de veículos",
     message: `
       Deseja realmente excluir o(s) seguinte(s) veículo(s)?
@@ -222,7 +279,7 @@ export function excluirPlacas(placas) {
       });
 
       Notify.create({
-        message: `Veículos excluidos do sistema com sucesso. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`,
+        message: `Veículo(s) excluido(s) do sistema com sucesso. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`,
         color: "negative",
         position: "center",
         icon: "delete"
