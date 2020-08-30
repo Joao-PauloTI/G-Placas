@@ -1,4 +1,4 @@
-import { LoadingBar, Dialog, Notify, exportFile } from "quasar";
+import { Dialog, Notify, exportFile, Loading } from "quasar";
 import { Date } from "core-js";
 
 const lowdb = require("lowdb");
@@ -8,7 +8,9 @@ const adapter = new FileSync("src/database/gplacas.json");
 const db = lowdb(adapter);
 const api = require("sinesp-api");
 
-if (!db.has("Placa").value()) {
+var tentativasProcura = 0;
+
+if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
     Placa: [],
     Estacionamento: [],
@@ -19,13 +21,20 @@ if (!db.has("Placa").value()) {
 }
 
 export function procurarPlaca(numeroPlaca) {
-  LoadingBar.start();
+  db.read();
+  if (!Loading.isActive) {
+    Loading.show({
+      spinnerColor: "amber",
+      message: `Pesquisando pela placa ${numeroPlaca} ...`
+    });
+  }
+
   api
     .search(numeroPlaca)
     .then(veiculo => {
       let veiculoExistente = buscarPlacas(veiculo.placa);
       if (veiculoExistente[0]) {
-        LoadingBar.stop();
+        Loading.hide();
         Dialog.create({
           dark: true,
           ok: {
@@ -37,7 +46,7 @@ export function procurarPlaca(numeroPlaca) {
           message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado no sistema.`
         });
       } else {
-        LoadingBar.stop();
+        Loading.hide();
         Dialog.create({
           cancel: true,
           persistent: true,
@@ -56,35 +65,35 @@ export function procurarPlaca(numeroPlaca) {
           dark: true,
           title: `Veículo encontrado!`,
           message: `
-          Um veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP. Deseja registrá-lo no sistema?
-          <hr/>
-          <table style='width: 100%; text-align: left'>
-            <theader>
-              <tr>
-                <th>Placa</th>
-                <th>Modelo</th>
-                <th>Cor</th>
-                <th>Ano</th>
-                <th>Estado</th>
-                <th>Município</th>
-                <th>Situação</th>
-              </tr>
-            </theader>
-            <tbody>
-              <tr>
-                <td>${numeroPlaca}</td>
-                <td>${veiculo.modelo}</td>
-                <td>${veiculo.cor}</td>
-                <td>${veiculo.ano}</td>
-                <td>${veiculo.uf}</td>
-                <td>${veiculo.municipio}</td>
-                <td>${veiculo.situacao}</td>
-              </tr>
-            </tbody>
-          </table>`
+            Um veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP. Deseja registrá-lo no sistema?
+            <hr/>
+            <table style='width: 100%; text-align: left'>
+              <theader>
+                <tr>
+                  <th>Placa</th>
+                  <th>Modelo</th>
+                  <th>Cor</th>
+                  <th>Ano</th>
+                  <th>Estado</th>
+                  <th>Município</th>
+                  <th>Situação</th>
+                </tr>
+              </theader>
+              <tbody>
+                <tr>
+                  <td>${numeroPlaca}</td>
+                  <td>${veiculo.modelo}</td>
+                  <td>${veiculo.cor}</td>
+                  <td>${veiculo.ano}</td>
+                  <td>${veiculo.uf}</td>
+                  <td>${veiculo.municipio}</td>
+                  <td>${veiculo.situacao}</td>
+                </tr>
+              </tbody>
+            </table>`
         })
           .onOk(() => {
-            salvarPlaca(veiculo);
+            return salvarPlaca(veiculo);
           })
           .onCancel(() => {
             return false;
@@ -92,13 +101,9 @@ export function procurarPlaca(numeroPlaca) {
       }
     })
     .catch(error => {
-      if (
-        error.message ===
-          `Nenhum veículo foi encontrado para a placa ${numeroPlaca}` ||
-        error.message === "Sem erros." ||
-        error.message === ""
-      ) {
-        LoadingBar.stop();
+      if (tentativasProcura === 20) {
+        tentativasProcura = 0;
+        Loading.hide();
         Dialog.create({
           html: true,
           dark: true,
@@ -112,15 +117,34 @@ export function procurarPlaca(numeroPlaca) {
                     As vezes isto pode ser apenas uma instabilidade no serviço da SINESP. Se você tem certeza que está procurando por uma placa existente, tente novamente.
                     </p>`
         });
+        return false;
+      } else if (
+        error.message === "Error: getaddrinfo EAI_AGAIN apicarros.com"
+      ) {
+        tentativasProcura = 0;
+        Loading.hide();
+        Dialog.create({
+          html: true,
+          dark: true,
+          ok: {
+            label: "Fechar",
+            color: "indigo-10",
+            push: true
+          },
+          title: `Sem conexão!`,
+          message: `<p>Não foi possível estabelecer conexão com a base de dados da SINESP.</p>`
+        });
+        return false;
       } else {
+        tentativasProcura = tentativasProcura + 1;
         console.log(error);
-        LoadingBar.stop();
         procurarPlaca(numeroPlaca);
       }
     });
 }
 
 export function buscarPlacas(numeroPlaca = null) {
+  db.read();
   if (numeroPlaca) {
     let dados = [];
     dados.push(
@@ -138,8 +162,7 @@ export function buscarPlacas(numeroPlaca = null) {
 }
 
 export function salvarPlaca(placa) {
-  LoadingBar.start();
-
+  db.read();
   let date = new Date();
   let dia = date.getDate();
   let mes = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
@@ -167,7 +190,6 @@ export function salvarPlaca(placa) {
     .push(placa)
     .write();
 
-  LoadingBar.stop();
   Notify.create({
     html: true,
     message:
@@ -178,9 +200,12 @@ export function salvarPlaca(placa) {
     position: "center",
     icon: "save"
   });
+
+  return placa;
 }
 
 export function criarPlacaManual(numeroPlaca) {
+  db.read();
   let novaPlaca = {
     ano: "N/A",
     anoModelo: "",
@@ -205,6 +230,7 @@ export function criarPlacaManual(numeroPlaca) {
 }
 
 export function editarCampoPlaca(valor, coluna, veiculo) {
+  db.read();
   db.get("Placa")
     .find({ placa: veiculo.placa })
     .assign({ [coluna]: valor })
@@ -220,6 +246,7 @@ export function editarCampoPlaca(valor, coluna, veiculo) {
 }
 
 export function excluirPlacas(placas) {
+  db.read();
   let tbody = placas
     .map(veiculo => {
       return `<tr>

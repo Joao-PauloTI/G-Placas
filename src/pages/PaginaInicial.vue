@@ -1,6 +1,36 @@
 <template>
-  <q-layout class="bg-grey-10 text-white">
-    <div class="q-pa-md" align="center">
+  <q-layout view="hHh Lpr lFf" class="bg-grey-10 text-white">
+    <q-header class="bg-grey-10" elevated>
+      <q-toolbar>
+        <q-toolbar-title>
+          <q-btn-dropdown flat size="lg" text-color="amber">
+            <q-list class="bg-grey-10" bordered dark>
+              <q-item clickable v-close-popup @click="deslogar">
+                <q-item-section avatar>
+                  <q-avatar
+                    icon="exit_to_app"
+                    color="negative"
+                    text-color="white"
+                  />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Sair</q-item-label>
+                  <q-item-label caption
+                    >@{{ dadosEstacionamento.login }}</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+          <span style="font-family: manjari; color: #FFC200" class="q-pl-xs">G-Placas</span
+          ><span style="font-family: manjari" class="q-pl-lg">{{
+            dadosEstacionamento.nome
+          }}</span>
+        </q-toolbar-title>
+      </q-toolbar>
+    </q-header>
+
+    <div class="q-pa-md" style="padding-top: 5%" align="center">
       <q-input
         mask="XXXXXXX"
         label="Insira o número de uma placa ..."
@@ -43,23 +73,73 @@
         card-class="bg-grey-10"
         table-header-class="bg-grey-10"
         table-class="bg-grey-10"
+        bordered
         dark
         :data="dadosTabela"
         :columns="colunasTabela"
         :filter="inputFiltro"
         :grid="btnGrid"
         :selected.sync="linhasSelecionadas"
+        :pagination.sync="paginacao"
       >
+        <template v-slot:header-cell-placa="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="lock" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-modelo="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="directions_car" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-cor="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="palette" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-ano="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="date_range" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-uf="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="location_city" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-municipio="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="house" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-data_cadastro="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="event_available" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
+        <template v-slot:header-cell-situacao="props">
+          <q-th :props="props" style="font-size: 110%">
+            <q-icon color="info" name="assignment_late" />
+            {{ props.col.label }}
+          </q-th>
+        </template>
         <template v-slot:body="props">
           <q-tr :props="props">
             <q-td key="id">
               <q-checkbox v-model="props.selected" dark />
             </q-td>
             <q-td key="placa" :props="props">
-              {{ props.row.placa }}
+              {{ props.row.placa.toUpperCase() }}
             </q-td>
             <q-td key="modelo" :props="props">
-              {{ props.row.modelo }}
+              {{ props.row.modelo.toUpperCase() }}
               <q-popup-edit
                 v-model="props.row.modelo"
                 @save="
@@ -86,7 +166,7 @@
               </q-popup-edit>
             </q-td>
             <q-td key="cor" :props="props">
-              {{ props.row.cor }}
+              {{ props.row.cor.toUpperCase() }}
               <q-popup-edit
                 v-model="props.row.cor"
                 @save="
@@ -113,7 +193,7 @@
               </q-popup-edit>
             </q-td>
             <q-td key="ano" :props="props">
-              {{ props.row.ano }}
+              {{ props.row.ano.toUpperCase() }}
               <q-popup-edit
                 v-model="props.row.ano"
                 @save="
@@ -140,7 +220,7 @@
               </q-popup-edit>
             </q-td>
             <q-td key="uf" :props="props">
-              {{ props.row.uf }}
+              {{ props.row.uf.toUpperCase() }}
               <q-popup-edit
                 v-model="props.row.uf"
                 @save="
@@ -167,7 +247,7 @@
               </q-popup-edit>
             </q-td>
             <q-td key="municipio" :props="props">
-              {{ props.row.municipio }}
+              {{ props.row.municipio.toUpperCase() }}
               <q-popup-edit
                 v-model="props.row.municipio"
                 @save="
@@ -193,8 +273,48 @@
                 />
               </q-popup-edit>
             </q-td>
+            <q-td key="data_cadastro" :props="props">
+              {{ props.row.data_cadastro.toUpperCase() }}
+            </q-td>
             <q-td key="situacao" :props="props">
-              {{ props.row.situacao }}
+              <div
+                v-if="
+                  props.row.situacao.toUpperCase().includes('OK') ||
+                    props.row.situacao.toUpperCase().includes('SEM RESTRIÇÃO')
+                "
+              >
+                <q-badge color="positive">
+                  <q-icon
+                    name="verified_user"
+                    color="white"
+                    size="xs"
+                    class="q-mr-sm"
+                  />
+                  <strong>{{ props.row.situacao.toUpperCase() }}</strong>
+                </q-badge>
+              </div>
+              <div
+                v-else-if="
+                  props.row.situacao.toUpperCase().includes('ROUBO') ||
+                    props.row.situacao.toUpperCase().includes('FURTO')
+                "
+              >
+                <q-badge color="negative">
+                  <q-icon
+                    name="warning"
+                    color="white"
+                    size="xs"
+                    class="q-mr-sm"
+                  />
+                  <strong>{{ props.row.situacao.toUpperCase() }}</strong>
+                </q-badge>
+              </div>
+              <div v-else>
+                <q-badge color="brown-8">
+                  <q-icon name="help" color="white" size="xs" class="q-mr-sm" />
+                  <strong>{{ props.row.situacao.toUpperCase() }}</strong>
+                </q-badge>
+              </div>
               <q-popup-edit
                 v-model="props.row.situacao"
                 @save="
@@ -260,7 +380,7 @@
           <q-btn
             @click="buscarPlacas"
             color="amber-10"
-            icon="refresh"
+            icon="sync"
             round
             class="q-ml-xs"
           >
@@ -289,6 +409,24 @@
               content-class="bg-green"
             >
               Exportar para Excel
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            @click="downloadDatabase"
+            color="grey-5"
+            icon="archive"
+            text-color="black"
+            round
+            class="q-ml-xs"
+          >
+            <q-tooltip
+              anchor="top middle"
+              self="bottom middle"
+              :offset="[10, 10]"
+              content-style="font-size: 14px; color: black"
+              content-class="bg-grey-5"
+            >
+              Exportar Registros
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -361,7 +499,9 @@
 </template>
 
 <script>
-const controller = require("src/controllers/PlacaController");
+const placaController = require("src/controllers/PlacaController");
+const estacionamentoController = require("src/controllers/EstacionamentoController");
+const utilsController = require("src/controllers/UtilsController");
 
 export default {
   name: "PaginaInicial",
@@ -373,6 +513,10 @@ export default {
       btnGridIcon: "view_module",
       carregandoTabela: false,
       linhasSelecionadas: [],
+      paginacao: {
+        rowsPerPage: 10
+      },
+      dadosEstacionamento: null,
       dadosTabela: null,
       colunasTabela: [
         {
@@ -418,6 +562,13 @@ export default {
           align: "left"
         },
         {
+          name: "data_cadastro",
+          label: "Data de Cadadstro",
+          field: "data_cadastro",
+          sortable: true,
+          align: "left"
+        },
+        {
           name: "situacao",
           label: "Situação",
           field: "situacao",
@@ -429,8 +580,8 @@ export default {
   },
   methods: {
     procurarPlaca: function() {
-      if (controller.validarPlaca(this.numeroPlaca)) {
-        controller.procurarPlaca(this.numeroPlaca);
+      if (placaController.validarPlaca(this.numeroPlaca)) {
+        placaController.procurarPlaca(this.numeroPlaca);
       } else {
         this.$q.dialog({
           dark: true,
@@ -446,47 +597,61 @@ export default {
       }
     },
     adicionarPlacaManual: function() {
-      this.$q.dialog({
-        html: true,
-        dark: true,
-        ok: {
-          label: "Salvar",
-          color: "green-9",
-          push: true
-        },
-        cancel: {
-          label: "Desfazer",
-          color: "negative",
-          push: true
-        },
-        title: "Adicionar Novo Veículo Manualmente",
-        message: "Insira a placa do veículo que deseja salvar:",
-        prompt: {
-          type: "text",
-          model: '',
-          isValid: val => controller.validarPlaca(val),
-          maxlength: 7,
-          outlined: true,
-        }
-      }).onOk((numeroPlaca) => {
-        controller.criarPlacaManual(numeroPlaca.toUpperCase())
-      });
+      this.$q
+        .dialog({
+          html: true,
+          dark: true,
+          ok: {
+            label: "Salvar",
+            color: "green-9",
+            push: true
+          },
+          cancel: {
+            label: "Desfazer",
+            color: "negative",
+            push: true
+          },
+          title: "Adicionar Novo Veículo Manualmente",
+          message: "Insira a placa do veículo que deseja salvar:",
+          prompt: {
+            type: "text",
+            model: "",
+            isValid: val => placaController.validarPlaca(val),
+            maxlength: 7,
+            outlined: true
+          }
+        })
+        .onOk(numeroPlaca => {
+          placaController.criarPlacaManual(numeroPlaca.toUpperCase());
+        });
     },
     buscarPlacas: function() {
-      this.dadosTabela = controller.buscarPlacas();
+      this.dadosTabela = placaController.buscarPlacas();
     },
     exportarTabelaExcel: function() {
-      controller.exportarTabelaExcel(this.colunasTabela, this.dadosTabela);
+      placaController.exportarTabelaExcel(this.colunasTabela, this.dadosTabela);
     },
     excluirPlacas: function() {
-      controller.excluirPlacas(this.linhasSelecionadas);
+      placaController.excluirPlacas(this.linhasSelecionadas);
       this.linhasSelecionadas = [];
     },
     editarCampoPlaca: function(valor, coluna, placa) {
-      controller.editarCampoPlaca(valor, coluna, placa);
+      placaController.editarCampoPlaca(valor, coluna, placa);
+    },
+    downloadDatabase: function() {
+      utilsController.downloadDatabase();
+    },
+    buscarEstacionamento: function(login) {
+      this.dadosEstacionamento = estacionamentoController.buscarEstacionamentos(
+        login
+      )[0];
+    },
+    deslogar: function() {
+      this.$router.push({ path: "/" });
     }
   },
   created: function() {
+    this.buscarEstacionamento(this.$route.params.estacionamento);
     this.buscarPlacas();
   }
 };
