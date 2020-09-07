@@ -22,7 +22,8 @@
               </q-item>
             </q-list>
           </q-btn-dropdown>
-          <span style="font-family: manjari; color: #FFC200" class="q-pl-xs">G-Placas</span
+          <span style="font-family: manjari; color: #FFC200" class="q-pl-xs"
+            >G-Placas</span
           ><span style="font-family: manjari" class="q-pl-lg">{{
             dadosEstacionamento.nome
           }}</span>
@@ -141,9 +142,15 @@
             <q-td key="modelo" :props="props">
               {{ props.row.modelo.toUpperCase() }}
               <q-popup-edit
-                v-model="props.row.modelo"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.modelo"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'modelo',
+                      linhasClonadasTabela.modelo
+                    );
                     editarCampoPlaca(valor, 'modelo', props.row);
                   }
                 "
@@ -155,7 +162,7 @@
                 title="Edite o modelo do veículo:"
               >
                 <q-input
-                  v-model="props.row.modelo"
+                  v-model="linhasClonadasTabela.modelo"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -168,9 +175,15 @@
             <q-td key="cor" :props="props">
               {{ props.row.cor.toUpperCase() }}
               <q-popup-edit
-                v-model="props.row.cor"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.cor"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'cor',
+                      linhasClonadasTabela.cor
+                    );
                     editarCampoPlaca(valor, 'cor', props.row);
                   }
                 "
@@ -182,7 +195,7 @@
                 title="Edite a cor do veículo:"
               >
                 <q-input
-                  v-model="props.row.cor"
+                  v-model="linhasClonadasTabela.cor"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -195,9 +208,15 @@
             <q-td key="ano" :props="props">
               {{ props.row.ano.toUpperCase() }}
               <q-popup-edit
-                v-model="props.row.ano"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.ano"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'ano',
+                      linhasClonadasTabela.ano
+                    );
                     editarCampoPlaca(valor, 'ano', props.row);
                   }
                 "
@@ -209,7 +228,7 @@
                 title="Edite o ano do veículo:"
               >
                 <q-input
-                  v-model="props.row.ano"
+                  v-model="linhasClonadasTabela.ano"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -222,9 +241,15 @@
             <q-td key="uf" :props="props">
               {{ props.row.uf.toUpperCase() }}
               <q-popup-edit
-                v-model="props.row.uf"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.uf"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'uf',
+                      linhasClonadasTabela.uf
+                    );
                     editarCampoPlaca(valor, 'uf', props.row);
                   }
                 "
@@ -236,7 +261,7 @@
                 title="Edite o estado do veículo:"
               >
                 <q-input
-                  v-model="props.row.uf"
+                  v-model="linhasClonadasTabela.uf"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -249,9 +274,15 @@
             <q-td key="municipio" :props="props">
               {{ props.row.municipio.toUpperCase() }}
               <q-popup-edit
-                v-model="props.row.municipio"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.municipio"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'municipio',
+                      linhasClonadasTabela.municipio
+                    );
                     editarCampoPlaca(valor, 'municipio', props.row);
                   }
                 "
@@ -263,7 +294,7 @@
                 title="Edite o município do veículo:"
               >
                 <q-input
-                  v-model="props.row.municipio"
+                  v-model="linhasClonadasTabela.municipio"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -316,9 +347,15 @@
                 </q-badge>
               </div>
               <q-popup-edit
-                v-model="props.row.situacao"
+                @before-show="clonarLinhaTabela(props.row)"
+                v-model="linhasClonadasTabela.situacao"
                 @save="
                   valor => {
+                    atualizarLinhaTabela(
+                      props.row,
+                      'situacao',
+                      linhasClonadasTabela.situacao
+                    );
                     editarCampoPlaca(valor, 'situacao', props.row);
                   }
                 "
@@ -330,7 +367,7 @@
                 title="Edite a situação do veículo:"
               >
                 <q-input
-                  v-model="props.row.situacao"
+                  v-model="linhasClonadasTabela.situacao"
                   :rules="[val => !!val || 'O campo não pode ficar vazio!']"
                   dense
                   dark
@@ -412,9 +449,9 @@
             </q-tooltip>
           </q-btn>
           <q-btn
-            @click="downloadDatabase"
+            @click="exportarDatabase"
             color="grey-5"
-            icon="archive"
+            icon="get_app"
             text-color="black"
             round
             class="q-ml-xs"
@@ -427,6 +464,24 @@
               content-class="bg-grey-5"
             >
               Exportar Registros
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            @click="importarDatabase"
+            color="grey-5"
+            icon="publish"
+            text-color="black"
+            round
+            class="q-ml-xs"
+          >
+            <q-tooltip
+              anchor="top middle"
+              self="bottom middle"
+              :offset="[10, 10]"
+              content-style="font-size: 14px; color: black"
+              content-class="bg-grey-5"
+            >
+              Importar Registros
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -501,6 +556,7 @@
 <script>
 const placaController = require("src/controllers/PlacaController");
 const estacionamentoController = require("src/controllers/EstacionamentoController");
+const loginController = require("src/controllers/LoginController");
 const utilsController = require("src/controllers/UtilsController");
 
 export default {
@@ -575,7 +631,8 @@ export default {
           sortable: true,
           align: "left"
         }
-      ]
+      ],
+      linhasClonadasTabela: {}
     };
   },
   methods: {
@@ -638,8 +695,26 @@ export default {
     editarCampoPlaca: function(valor, coluna, placa) {
       placaController.editarCampoPlaca(valor, coluna, placa);
     },
-    downloadDatabase: function() {
-      utilsController.downloadDatabase();
+    atualizarLinhaTabela: function(row, key, value) {
+      row[key] = value;
+    },
+    clonarLinhaTabela: function(row) {
+      this.linhasClonadasTabela = { ...row };
+    },
+    importarDatabase: function() {
+      let input = document.createElement("input");
+      input.type = "file";
+
+      let arquivo = null;
+      input.onchange = e => {
+        arquivo = e.target.files[0];
+        utilsController.importarDatabase(arquivo);
+      };
+
+      input.click();
+    },
+    exportarDatabase: function() {
+      utilsController.exportarDatabase();
     },
     buscarEstacionamento: function(login) {
       this.dadosEstacionamento = estacionamentoController.buscarEstacionamentos(
@@ -647,7 +722,10 @@ export default {
       )[0];
     },
     deslogar: function() {
-      this.$router.push({ path: "/" });
+      let logoff = loginController.deslogar(this.dadosEstacionamento);
+      if (logoff) {
+        this.$router.push({ path: "/" });
+      }
     }
   },
   created: function() {

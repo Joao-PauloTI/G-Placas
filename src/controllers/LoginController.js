@@ -16,7 +16,7 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
 }
 
 export function logar(dados) {
-  db.read()
+  db.read();
   let loginExistente = db
     .get("Estacionamento")
     .find({ login: dados.login })
@@ -28,6 +28,10 @@ export function logar(dados) {
       .find({ login: dados.login, senha: dados.senha })
       .value();
     if (senhaCorreta) {
+      db.get("Estacionamento")
+        .find({ login: dados.login, senha: dados.senha })
+        .assign({ status: "on" })
+        .write();
       return loginExistente;
     } else {
       Notify.create({
@@ -47,4 +51,14 @@ export function logar(dados) {
       icon: "keyboard"
     });
   }
+}
+
+export function deslogar(dados) {
+  db.read();
+  db.get("Estacionamento")
+    .find({ login: dados.login, senha: dados.senha })
+    .assign({ status: "off" })
+    .write();
+  
+  return true
 }
