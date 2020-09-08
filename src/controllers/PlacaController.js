@@ -7,6 +7,7 @@ const adapter = new FileSync("src/database/gplacas.json");
 
 const db = lowdb(adapter);
 const api = require("sinesp-api");
+const loginController = require("src/controllers/LoginController");
 
 var tentativasProcura = 0;
 
@@ -19,32 +20,32 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   }).write();
 }
 
-export function procurarPlaca(numeroPlaca, idEstacionamento) {
+export function procurarPlaca(numeroPlaca) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   if (!Loading.isActive) {
     Loading.show({
       spinnerColor: "amber",
       message: `Pesquisando pela placa ${numeroPlaca} ...`
     });
   }
-
-  api
-    .search(numeroPlaca)
-    .then(veiculo => {
-      let veiculoExistente = buscarPlacas(veiculo.placa, idEstacionamento);
-      if (veiculoExistente[0]) {
-        Loading.hide();
-        Dialog.create({
-          dark: true,
-          ok: {
-            label: "Fechar",
-            color: "indigo-10",
-            push: true
-          },
-          title: "Veículo já registrado!",
-          message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado neste estacionamento.`
-        });
-      } else {
+  let veiculoExistente = buscarPlacas(numeroPlaca);
+  if (veiculoExistente[0]) {
+    Loading.hide();
+    Dialog.create({
+      dark: true,
+      ok: {
+        label: "Fechar",
+        color: "indigo-10",
+        push: true
+      },
+      title: "Veículo já registrado!",
+      message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado neste estacionamento.`
+    });
+  } else {
+    api
+      .search(numeroPlaca)
+      .then(veiculo => {
         Loading.hide();
         Dialog.create({
           cancel: true,
@@ -92,94 +93,81 @@ export function procurarPlaca(numeroPlaca, idEstacionamento) {
             </table>`
         })
           .onOk(() => {
-            return salvarPlaca(veiculo, idEstacionamento);
+            return salvarPlaca(veiculo);
           })
           .onCancel(() => {
             return false;
           });
-      }
-    })
-    .catch(error => {
-      if (tentativasProcura === 20) {
-        tentativasProcura = 0;
-        Loading.hide();
-        Dialog.create({
-          html: true,
-          dark: true,
-          ok: {
-            label: "Fechar",
-            color: "indigo-10",
-            push: true
-          },
-          title: `Veículo não encontrado!`,
-          message: `<p>Nenhum veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP.<br/><br/>
+      })
+      .catch(error => {
+        if (tentativasProcura === 20) {
+          tentativasProcura = 0;
+          Loading.hide();
+          Dialog.create({
+            html: true,
+            dark: true,
+            ok: {
+              label: "Fechar",
+              color: "indigo-10",
+              push: true
+            },
+            title: `Veículo não encontrado!`,
+            message: `<p>Nenhum veículo com a placa ${numeroPlaca} foi encontrado na base de dados da SINESP.<br/><br/>
                     As vezes isto pode ser apenas uma instabilidade no serviço da SINESP. Se você tem certeza que está procurando por uma placa existente, tente novamente.
                     </p>`
-        });
-        return false;
-      } else if (
-        error.message === "Error: getaddrinfo EAI_AGAIN apicarros.com"
-      ) {
-        tentativasProcura = 0;
-        Loading.hide();
-        Dialog.create({
-          html: true,
-          dark: true,
-          ok: {
-            label: "Fechar",
-            color: "indigo-10",
-            push: true
-          },
-          title: `Sem conexão!`,
-          message: `<p>Não foi possível estabelecer conexão com a base de dados da SINESP.</p>`
-        });
-        return false;
-      } else {
-        tentativasProcura = tentativasProcura + 1;
-        procurarPlaca(numeroPlaca);
-      }
-    });
-}
-
-export function buscarPlacas(numeroPlaca = null, idEstacionamento = null) {
-  db.read();
-  if (numeroPlaca) {
-    let dados = [];
-    if (idEstacionamento) {
-      dados.push(
-        db
-          .get("Placa")
-          .find({ placa: numeroPlaca, id_estacionamento: idEstacionamento })
-          .value()
-      );
-      return dados;
-    } else {
-      dados.push(
-        db
-          .get("Placa")
-          .find({ placa: numeroPlaca })
-          .value()
-      );
-      return dados;
-    }
-  } else {
-    if (idEstacionamento) {
-      let query = db
-        .get("Placa")
-        .filter({ id_estacionamento: idEstacionamento })
-        .value();
-      let dados = _.orderBy(query, "id", "desc");
-      return dados;
-    } else {
-      let query = db.get("Placa").value();
-      let dados = _.orderBy(query, "id", "desc");
-      return dados;
-    }
+          });
+          return false;
+        } else if (error.message === "Error: getaddrinfo EAI_AGAIN apicarros.com") {
+          tentativasProcura = 0;
+          Loading.hide();
+          Dialog.create({
+            html: true,
+            dark: true,
+            ok: {
+              label: "Fechar",
+              color: "indigo-10",
+              push: true
+            },
+            title: `Sem conexão!`,
+            message: `<p>Não foi possível estabelecer conexão com a base de dados da SINESP.</p>`
+          });
+          return false;
+        } else {
+          tentativasProcura = tentativasProcura + 1;
+          procurarPlaca(numeroPlaca);
+        }
+      });
   }
 }
 
-export function salvarPlaca(placa, idEstacionamento, importar = null) {
+export function buscarPlacas(numeroPlaca = null) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
+  if (numeroPlaca) {
+    let dados = [];
+    dados.push(
+      db
+        .get("Placa")
+        .find({
+          placa: numeroPlaca,
+          id_estacionamento: estacionamentoLogado.id
+        })
+        .value()
+    );
+    return dados;
+  } else {
+    let query = db
+      .get("Placa")
+      .filter({ id_estacionamento: estacionamentoLogado.id })
+      .value();
+    let dados = _.orderBy(query, "id", "desc");
+    return dados;
+  }
+}
+
+export function salvarPlaca(placa, importar = null) {
+  db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   let date = new Date();
   let dia = date.getDate();
   let mes = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
@@ -201,7 +189,7 @@ export function salvarPlaca(placa, idEstacionamento, importar = null) {
   }
 
   placa["id"] = novoId;
-  placa["id_estacionamento"] = idEstacionamento;
+  placa["id_estacionamento"] = estacionamentoLogado.id;
   placa["data_cadastro"] = dataCadastro;
 
   db.get("Placa")
@@ -213,8 +201,8 @@ export function salvarPlaca(placa, idEstacionamento, importar = null) {
       html: true,
       message:
         placa.modelo !== "N/A"
-          ? `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`
-          : `A placa <strong>${placa.placa}</strong> foi registrada no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela e complemente as informações do veículo.`,
+          ? `O veículo <strong>${placa.modelo}</strong> foi registrado neste estacionamento. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`
+          : `A placa <strong>${placa.placa}</strong> foi registrada neste estacionamento. Clique no ícone "Recarregar Tabela" para atualizar a tabela e complemente as informações do veículo.`,
       color: "green-9",
       position: "center",
       icon: "save"
@@ -224,8 +212,9 @@ export function salvarPlaca(placa, idEstacionamento, importar = null) {
   return placa;
 }
 
-export function criarPlacaManual(numeroPlaca, idEstacionamento) {
+export function criarPlacaManual(numeroPlaca) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   let novaPlaca = {
     ano: "N/A",
     anoModelo: "",
@@ -246,13 +235,14 @@ export function criarPlacaManual(numeroPlaca, idEstacionamento) {
     uf: "N/A"
   };
 
-  salvarPlaca(novaPlaca, idEstacionamento);
+  salvarPlaca(novaPlaca);
 }
 
-export function editarCampoPlaca(valor, coluna, veiculo, idEstacionamento) {
+export function editarCampoPlaca(valor, coluna, veiculo) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   db.get("Placa")
-    .find({ placa: veiculo.placa, id_estacionamento: idEstacionamento })
+    .find({ placa: veiculo.placa, id_estacionamento: estacionamentoLogado.id })
     .assign({ [coluna]: valor })
     .write();
 
@@ -265,8 +255,9 @@ export function editarCampoPlaca(valor, coluna, veiculo, idEstacionamento) {
   });
 }
 
-export function excluirPlacas(placas, idEstacionamento) {
+export function excluirPlacas(placas) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   let tbody = placas
     .map(veiculo => {
       return `<tr>
@@ -321,7 +312,10 @@ export function excluirPlacas(placas, idEstacionamento) {
     .onOk(() => {
       placas.forEach(veiculo => {
         db.get("Placa")
-          .remove({ placa: veiculo.placa, id_estacionamento: idEstacionamento })
+          .remove({
+            placa: veiculo.placa,
+            id_estacionamento: estacionamentoLogado.id
+          })
           .write();
       });
 
@@ -337,77 +331,4 @@ export function excluirPlacas(placas, idEstacionamento) {
     .onCancel(() => {
       return false;
     });
-}
-
-export function validarPlaca(numeroPlaca) {
-  if (numeroPlaca.length === 7) {
-    if (
-      /^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 3)) &&
-      /^-?\d+$/.test(numeroPlaca.slice(3, 7))
-    ) {
-      return true;
-    } else if (
-      /^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 2)) &&
-      /^-?\d+$/.test(numeroPlaca[3]) &&
-      /^[a-zA-Z]+$/.test(numeroPlaca[4]) &&
-      /^-?\d+$/.test(numeroPlaca.slice(5, 7))
-    ) {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
-}
-
-export function exportarTabelaExcel(colunas, dados) {
-  function wrapCsvValue(val, formatFn) {
-    let formatted = formatFn !== void 0 ? formatFn(val) : val;
-
-    formatted =
-      formatted === void 0 || formatted === null ? "" : String(formatted);
-
-    formatted = formatted.split('"').join('""');
-    /**
-     * Excel accepts \n and \r in strings, but some other CSV parsers do not
-     * Uncomment the next two lines to escape new lines
-     */
-    // .split('\n').join('\\n')
-    // .split('\r').join('\\r')
-
-    return `"${formatted}"`;
-  }
-
-  const content = [colunas.map(col => wrapCsvValue(col.label))]
-    .concat(
-      dados.map(row =>
-        colunas
-          .map(col =>
-            wrapCsvValue(
-              typeof col.field === "function"
-                ? col.field(row)
-                : row[col.field === void 0 ? col.name : col.field],
-              col.format
-            )
-          )
-          .join(",")
-      )
-    )
-    .join("\r\n");
-
-  const status = exportFile(
-    "G-Placas_Tabela_Veiculos.csv",
-    content,
-    "text/csv"
-  );
-
-  if (status !== true) {
-    Notify.create({
-      message: "Não foi possível exportar a tabela para CSV.",
-      color: "negative",
-      icon: "warning",
-      position: "top-right"
-    });
-  }
 }

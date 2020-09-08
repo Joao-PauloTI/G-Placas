@@ -52,12 +52,22 @@ export function logar(dados) {
   }
 }
 
-export function deslogar(dados) {
+export function deslogar() {
   db.read();
   db.get("Estacionamento")
-    .find({ login: dados.login, senha: dados.senha })
+    .find({ status: "on" })
     .assign({ status: "off" })
     .write();
 
   return true;
+}
+
+export function buscarEstacionamentoLogado() {
+  db.read();
+  let estacionamentoLogado = db
+    .get("Estacionamento")
+    .find({ status: "on" })
+    .value();
+
+  return estacionamentoLogado;
 }

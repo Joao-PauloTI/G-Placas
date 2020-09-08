@@ -6,6 +6,7 @@ const FileSync = require("lowdb/adapters/FileSync");
 const adapter = new FileSync("src/database/gplacas.json");
 
 const db = lowdb(adapter);
+const loginController = require("src/controllers/LoginController");
 
 if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
@@ -17,6 +18,7 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
 
 export function buscarEstacionamentos(login = null) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   if (login) {
     let dados = [];
     dados.push(
@@ -35,6 +37,7 @@ export function buscarEstacionamentos(login = null) {
 
 export function criarEstacionamento(estacionamento) {
   db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   let loginExistente = db
     .get("Estacionamento")
     .find({ login: estacionamento.login })

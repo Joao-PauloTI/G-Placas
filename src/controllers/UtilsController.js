@@ -1,11 +1,13 @@
 import { exportFile, Notify, Dialog } from "quasar";
-const placaController = require("src/controllers/PlacaController");
+
 const fs = require("fs");
 const lowdb = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
 const adapter = new FileSync("src/database/gplacas.json");
 
 const db = lowdb(adapter);
+const loginController = require("src/controllers/LoginController");
+const placaController = require("src/controllers/PlacaController");
 
 if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
@@ -15,17 +17,50 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   }).write();
 }
 
-export function exportarPlacas(idEstacionamento) {
+export function exportarTabelaExcel(colunas, dados) {
+  function wrapCsvValue(val, formatFn) {
+    let formatted = formatFn !== void 0 ? formatFn(val) : val;
+
+    formatted = formatted === void 0 || formatted === null ? "" : String(formatted);
+
+    formatted = formatted.split('"').join('""');
+    /**
+     * Excel accepts \n and \r in strings, but some other CSV parsers do not
+     * Uncomment the next two lines to escape new lines
+     */
+    // .split('\n').join('\\n')
+    // .split('\r').join('\\r')
+
+    return `"${formatted}"`;
+  }
+
+  const content = [colunas.map(col => wrapCsvValue(col.label))].concat(dados.map(row => colunas.map(col => wrapCsvValue(typeof col.field === "function" ? col.field(row) : row[col.field === void 0 ? col.name : col.field], col.format)).join(","))).join("\r\n");
+
+  const status = exportFile("G-Placas_Tabela_Veiculos.csv", content, "text/csv");
+
+  if (status !== true) {
+    Notify.create({
+      message: "Não foi possível exportar a tabela para CSV.",
+      color: "negative",
+      icon: "warning",
+      position: "top-right"
+    });
+  }
+}
+
+export function exportarPlacas() {
+  db.read();
+  let estacionamentoLogado = loginController.buscarEstacionamentoLogado();
   let dados = db
     .get("Placa")
-    .filter({ id_estacionamento: idEstacionamento })
+    .filter({ id_estacionamento: estacionamentoLogado.id })
     .value();
   let json = JSON.stringify(dados, null, 2);
 
   exportFile("gplacas.json", json, "text/json");
 }
 
-export function importarPlacas(arquivo, idEstacionamento) {
+export function importarPlacas(arquivo) {
   if (arquivo.type === "application/json" && arquivo.name === "gplacas.json") {
     fs.readFile(arquivo.path, (erro, dadosBinarios) => {
       if (erro) {
@@ -42,10 +77,7 @@ export function importarPlacas(arquivo, idEstacionamento) {
 
         let veiculosNovos = [];
         dados.forEach(veiculo => {
-          let veiculoExistente = placaController.buscarPlacas(
-            veiculo.placa,
-            idEstacionamento
-          );
+          let veiculoExistente = placaController.buscarPlacas(veiculo.placa);
           if (!veiculoExistente[0]) {
             veiculosNovos.push(veiculo);
           }
@@ -106,7 +138,7 @@ export function importarPlacas(arquivo, idEstacionamento) {
             .onOk(() => {
               let qtdVeiculos = 0;
               veiculosNovos.forEach(veiculo => {
-                placaController.salvarPlaca(veiculo, idEstacionamento, true);
+                placaController.salvarPlaca(veiculo, true);
                 qtdVeiculos = qtdVeiculos + 1;
               });
 
@@ -140,5 +172,19 @@ export function importarPlacas(arquivo, idEstacionamento) {
       position: "bottom",
       icon: "storage"
     });
+  }
+}
+
+export function validarPlaca(numeroPlaca) {
+  if (numeroPlaca.length === 7) {
+    if (/^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 3)) && /^-?\d+$/.test(numeroPlaca.slice(3, 7))) {
+      return true;
+    } else if (/^[a-zA-Z]+$/.test(numeroPlaca.slice(0, 2)) && /^-?\d+$/.test(numeroPlaca[3]) && /^[a-zA-Z]+$/.test(numeroPlaca[4]) && /^-?\d+$/.test(numeroPlaca.slice(5, 7))) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
   }
 }
