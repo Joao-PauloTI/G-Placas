@@ -137,7 +137,6 @@ export function procurarPlaca(numeroPlaca) {
         return false;
       } else {
         tentativasProcura = tentativasProcura + 1;
-        console.log(error);
         procurarPlaca(numeroPlaca);
       }
     });
@@ -161,7 +160,7 @@ export function buscarPlacas(numeroPlaca = null) {
   }
 }
 
-export function salvarPlaca(placa) {
+export function salvarPlaca(placa, importar = null) {
   db.read();
   let date = new Date();
   let dia = date.getDate();
@@ -190,16 +189,18 @@ export function salvarPlaca(placa) {
     .push(placa)
     .write();
 
-  Notify.create({
-    html: true,
-    message:
-      placa.modelo !== "N/A"
-        ? `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`
-        : `A placa <strong>${placa.placa}</strong> foi registrada no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela e complemente as informações do veículo.`,
-    color: "green-9",
-    position: "center",
-    icon: "save"
-  });
+  if (!importar) {
+    Notify.create({
+      html: true,
+      message:
+        placa.modelo !== "N/A"
+          ? `O veículo <strong>${placa.modelo}</strong> foi registrado no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela.`
+          : `A placa <strong>${placa.placa}</strong> foi registrada no sistema. Clique no ícone "Recarregar Tabela" para atualizar a tabela e complemente as informações do veículo.`,
+      color: "green-9",
+      position: "center",
+      icon: "save"
+    });
+  }
 
   return placa;
 }

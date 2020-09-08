@@ -134,7 +134,17 @@
         <template v-slot:body="props">
           <q-tr :props="props">
             <q-td key="id">
-              <q-checkbox v-model="props.selected" dark />
+              <q-checkbox v-model="props.selected" dark>
+                <q-tooltip
+                  anchor="top middle"
+                  self="bottom middle"
+                  :offset="[10, 10]"
+                  content-style="font-size: 14px"
+                  content-class="bg-primary"
+                >
+                  Selecionar veículo
+                </q-tooltip>
+              </q-checkbox>
             </q-td>
             <q-td key="placa" :props="props">
               {{ props.row.placa.toUpperCase() }}
@@ -432,6 +442,7 @@
             </q-tooltip>
           </q-btn>
           <q-btn
+            v-if="dadosTabela[0]"
             @click="exportarTabelaExcel"
             color="green"
             icon="archive"
@@ -449,7 +460,8 @@
             </q-tooltip>
           </q-btn>
           <q-btn
-            @click="exportarDatabase"
+            v-if="dadosTabela[0]"
+            @click="exportarPlacas"
             color="grey-5"
             icon="get_app"
             text-color="black"
@@ -467,7 +479,7 @@
             </q-tooltip>
           </q-btn>
           <q-btn
-            @click="importarDatabase"
+            @click="importarPlacas"
             color="grey-5"
             icon="publish"
             text-color="black"
@@ -701,20 +713,20 @@ export default {
     clonarLinhaTabela: function(row) {
       this.linhasClonadasTabela = { ...row };
     },
-    importarDatabase: function() {
+    importarPlacas: function() {
       let input = document.createElement("input");
       input.type = "file";
 
       let arquivo = null;
       input.onchange = e => {
         arquivo = e.target.files[0];
-        utilsController.importarDatabase(arquivo);
+        utilsController.importarPlacas(arquivo);
       };
 
       input.click();
     },
-    exportarDatabase: function() {
-      utilsController.exportarDatabase();
+    exportarPlacas: function() {
+      utilsController.exportarPlacas();
     },
     buscarEstacionamento: function(login) {
       this.dadosEstacionamento = estacionamentoController.buscarEstacionamentos(
