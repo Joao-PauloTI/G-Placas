@@ -14,13 +14,12 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
     Placa: [],
     Estacionamento: [],
-    Estacionamento_Placa: [],
     Motorista: [],
     Usuario: []
   }).write();
 }
 
-export function procurarPlaca(numeroPlaca) {
+export function procurarPlaca(numeroPlaca, idEstacionamento) {
   db.read();
   if (!Loading.isActive) {
     Loading.show({
@@ -32,7 +31,7 @@ export function procurarPlaca(numeroPlaca) {
   api
     .search(numeroPlaca)
     .then(veiculo => {
-      let veiculoExistente = buscarPlacas(veiculo.placa);
+      let veiculoExistente = buscarPlacas(veiculo.placa, idEstacionamento);
       if (veiculoExistente[0]) {
         Loading.hide();
         Dialog.create({
@@ -43,7 +42,7 @@ export function procurarPlaca(numeroPlaca) {
             push: true
           },
           title: "Veículo já registrado!",
-          message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado no sistema.`
+          message: `O veículo ${veiculoExistente[0].modelo} de placa ${veiculoExistente[0].placa} já está registrado neste estacionamento.`
         });
       } else {
         Loading.hide();
@@ -93,7 +92,7 @@ export function procurarPlaca(numeroPlaca) {
             </table>`
         })
           .onOk(() => {
-            return salvarPlaca(veiculo);
+            return salvarPlaca(veiculo, idEstacionamento);
           })
           .onCancel(() => {
             return false;
@@ -142,25 +141,44 @@ export function procurarPlaca(numeroPlaca) {
     });
 }
 
-export function buscarPlacas(numeroPlaca = null) {
+export function buscarPlacas(numeroPlaca = null, idEstacionamento = null) {
   db.read();
   if (numeroPlaca) {
     let dados = [];
-    dados.push(
-      db
-        .get("Placa")
-        .find({ placa: numeroPlaca })
-        .value()
-    );
-    return dados;
+    if (idEstacionamento) {
+      dados.push(
+        db
+          .get("Placa")
+          .find({ placa: numeroPlaca, id_estacionamento: idEstacionamento })
+          .value()
+      );
+      return dados;
+    } else {
+      dados.push(
+        db
+          .get("Placa")
+          .find({ placa: numeroPlaca })
+          .value()
+      );
+      return dados;
+    }
   } else {
-    let query = db.get("Placa").value();
-    let dados = _.orderBy(query, "id", "desc");
-    return dados;
+    if (idEstacionamento) {
+      let query = db
+        .get("Placa")
+        .filter({ id_estacionamento: idEstacionamento })
+        .value();
+      let dados = _.orderBy(query, "id", "desc");
+      return dados;
+    } else {
+      let query = db.get("Placa").value();
+      let dados = _.orderBy(query, "id", "desc");
+      return dados;
+    }
   }
 }
 
-export function salvarPlaca(placa, importar = null) {
+export function salvarPlaca(placa, idEstacionamento, importar = null) {
   db.read();
   let date = new Date();
   let dia = date.getDate();
@@ -183,6 +201,7 @@ export function salvarPlaca(placa, importar = null) {
   }
 
   placa["id"] = novoId;
+  placa["id_estacionamento"] = idEstacionamento;
   placa["data_cadastro"] = dataCadastro;
 
   db.get("Placa")
@@ -205,7 +224,7 @@ export function salvarPlaca(placa, importar = null) {
   return placa;
 }
 
-export function criarPlacaManual(numeroPlaca) {
+export function criarPlacaManual(numeroPlaca, idEstacionamento) {
   db.read();
   let novaPlaca = {
     ano: "N/A",
@@ -227,13 +246,13 @@ export function criarPlacaManual(numeroPlaca) {
     uf: "N/A"
   };
 
-  salvarPlaca(novaPlaca);
+  salvarPlaca(novaPlaca, idEstacionamento);
 }
 
-export function editarCampoPlaca(valor, coluna, veiculo) {
+export function editarCampoPlaca(valor, coluna, veiculo, idEstacionamento) {
   db.read();
   db.get("Placa")
-    .find({ placa: veiculo.placa })
+    .find({ placa: veiculo.placa, id_estacionamento: idEstacionamento })
     .assign({ [coluna]: valor })
     .write();
 
@@ -246,7 +265,7 @@ export function editarCampoPlaca(valor, coluna, veiculo) {
   });
 }
 
-export function excluirPlacas(placas) {
+export function excluirPlacas(placas, idEstacionamento) {
   db.read();
   let tbody = placas
     .map(veiculo => {
@@ -302,7 +321,7 @@ export function excluirPlacas(placas) {
     .onOk(() => {
       placas.forEach(veiculo => {
         db.get("Placa")
-          .remove({ placa: veiculo.placa })
+          .remove({ placa: veiculo.placa, id_estacionamento: idEstacionamento })
           .write();
       });
 

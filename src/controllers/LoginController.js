@@ -10,7 +10,6 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
     Placa: [],
     Estacionamento: [],
-    Estacionamento_Placa: [],
     Motorista: []
   }).write();
 }
@@ -59,6 +58,6 @@ export function deslogar(dados) {
     .find({ login: dados.login, senha: dados.senha })
     .assign({ status: "off" })
     .write();
-  
-  return true
+
+  return true;
 }

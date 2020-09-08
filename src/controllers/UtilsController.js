@@ -11,19 +11,21 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
     Placa: [],
     Estacionamento: [],
-    Estacionamento_Placa: [],
     Motorista: []
   }).write();
 }
 
-export function exportarPlacas() {
-  let dados = db.getState();
+export function exportarPlacas(idEstacionamento) {
+  let dados = db
+    .get("Placa")
+    .filter({ id_estacionamento: idEstacionamento })
+    .value();
   let json = JSON.stringify(dados, null, 2);
 
   exportFile("gplacas.json", json, "text/json");
 }
 
-export function importarPlacas(arquivo) {
+export function importarPlacas(arquivo, idEstacionamento) {
   if (arquivo.type === "application/json" && arquivo.name === "gplacas.json") {
     fs.readFile(arquivo.path, (erro, dadosBinarios) => {
       if (erro) {
@@ -39,8 +41,11 @@ export function importarPlacas(arquivo) {
         let dados = JSON.parse(dadosBinarios.toString());
 
         let veiculosNovos = [];
-        dados.Placa.forEach(veiculo => {
-          let veiculoExistente = placaController.buscarPlacas(veiculo.placa);
+        dados.forEach(veiculo => {
+          let veiculoExistente = placaController.buscarPlacas(
+            veiculo.placa,
+            idEstacionamento
+          );
           if (!veiculoExistente[0]) {
             veiculosNovos.push(veiculo);
           }
@@ -101,7 +106,7 @@ export function importarPlacas(arquivo) {
             .onOk(() => {
               let qtdVeiculos = 0;
               veiculosNovos.forEach(veiculo => {
-                placaController.salvarPlaca(veiculo, true);
+                placaController.salvarPlaca(veiculo, idEstacionamento, true);
                 qtdVeiculos = qtdVeiculos + 1;
               });
 

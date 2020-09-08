@@ -650,7 +650,10 @@ export default {
   methods: {
     procurarPlaca: function() {
       if (placaController.validarPlaca(this.numeroPlaca)) {
-        placaController.procurarPlaca(this.numeroPlaca);
+        placaController.procurarPlaca(
+          this.numeroPlaca,
+          this.dadosEstacionamento.id
+        );
       } else {
         this.$q.dialog({
           dark: true,
@@ -691,21 +694,35 @@ export default {
           }
         })
         .onOk(numeroPlaca => {
-          placaController.criarPlacaManual(numeroPlaca.toUpperCase());
+          placaController.criarPlacaManual(
+            numeroPlaca.toUpperCase(),
+            this.dadosEstacionamento.id
+          );
         });
     },
     buscarPlacas: function() {
-      this.dadosTabela = placaController.buscarPlacas();
+      this.dadosTabela = placaController.buscarPlacas(
+        null,
+        this.dadosEstacionamento.id
+      );
     },
     exportarTabelaExcel: function() {
       placaController.exportarTabelaExcel(this.colunasTabela, this.dadosTabela);
     },
     excluirPlacas: function() {
-      placaController.excluirPlacas(this.linhasSelecionadas);
+      placaController.excluirPlacas(
+        this.linhasSelecionadas,
+        this.dadosEstacionamento.id
+      );
       this.linhasSelecionadas = [];
     },
     editarCampoPlaca: function(valor, coluna, placa) {
-      placaController.editarCampoPlaca(valor, coluna, placa);
+      placaController.editarCampoPlaca(
+        valor,
+        coluna,
+        placa,
+        this.dadosEstacionamento.id
+      );
     },
     atualizarLinhaTabela: function(row, key, value) {
       row[key] = value;
@@ -720,13 +737,13 @@ export default {
       let arquivo = null;
       input.onchange = e => {
         arquivo = e.target.files[0];
-        utilsController.importarPlacas(arquivo);
+        utilsController.importarPlacas(arquivo, this.dadosEstacionamento.id);
       };
 
       input.click();
     },
     exportarPlacas: function() {
-      utilsController.exportarPlacas();
+      utilsController.exportarPlacas(this.dadosEstacionamento.id);
     },
     buscarEstacionamento: function(login) {
       this.dadosEstacionamento = estacionamentoController.buscarEstacionamentos(

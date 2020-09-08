@@ -11,7 +11,6 @@ if (!db.has("Placa").value() && !db.has("Estacionamento").value()) {
   db.defaults({
     Placa: [],
     Estacionamento: [],
-    Estacionamento_Placa: [],
     Motorista: []
   }).write();
 }
